@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<body>
+</body>
+<script>
+
+  window.addEventListener('message', function (event) {
+    const message = event.data;
+    switch (message.type) {
+      case 'makeRequest':
+        makeRequest(message.data.url, message.data.options, message.data.cbId);
+      default:
+        break;
+    }
+  });
+
+  async function makeRequest(url, options = {}, cbId) {
+    try {
+      const res = await fetch(url, options);
+      let resData = null;
+      if (res.status !== 204) {
+        try {
+          resData = await res.json();
+        } catch (err) {
+          resData = await res.text();
+        }
+      }
+      callbackRequest({
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        headers: res.headers,
+        type: res.type,
+        redirected: res.redirected,
+        body: res.body,
+        bodyUsed: res.bodyUsed,
+        data: resData
+      }, cbId);
+    } catch (err) {
+      callbackRequest({ ok: false, error: err }, cbId);
+    }
+  }
+
+  function callbackRequest(data, cbId) {
+    const res = fetch(`https://${GetParentResourceName()}/response`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: JSON.stringify({ ...data, cbId })
+    }).catch((err) => console.log(`err: ${err}`));
+  }
+</script>
+
+</html>
